@@ -19,6 +19,7 @@ class SeleniumBrowser(Browser):
     def __init__(self, product):
         super().__init__()
         self.product = product
+        self.json_write = Json()
 
     def check_string(self, product):
         result = ''
@@ -71,24 +72,34 @@ class SeleniumBrowser(Browser):
                     upload = item.find_element(By.CLASS_NAME, 'aditem-main--top--right').text
                 except:
                     pass
-                print('TITEL: ', title)
-                print('PREIS: ', price)
-                print('ORT: ', location)
-                print('LINK: ', link)
-                print('UPLOAD: ', upload)
-                print('TITEL: ', title)
-                print('PREIS: ', price)
-                print('ORT: ', location)
-                print('LINK: ', link)
-                print('UPLOAD: ', upload)
-    
-    def write_json(new_data, filename='data.json'):
-        with open(filename, 'r+') as file:
-            file_data = json.load(file)
-            file_data.append(new_data)
-            file.seek(0)
+                scraped_data = {
+                'title': title,
+                'price': price,
+                'location': location,
+                'link': link,
+                'upload': upload
+                }
+                self.json_write.write_json(scraped_data)
+        print("Die Inhalte wurden gespeichert.")
+        self.driver.close()
+
+class Json:
+    def __init__(self, filename='data.json'):
+        self.filename = filename
+
+    def write_json(self, new_data):
+        try:
+            with open(self.filename, 'r+') as file:
+                file_data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            file_data = []
+        
+        file_data.append(new_data)
+        
+        with open(self.filename, 'w') as file:
             json.dump(file_data, file, indent=4)
 
+            
 # Erstelle eine Instanz von SeleniumBrowser
 product = input("Wonach möchten Sie suchen: ")
 browser = SeleniumBrowser(product)
@@ -97,4 +108,3 @@ browser.start()
 browser.get_product_url(product)
 browser.accept_cookies()
 browser.get_elements_list_from_html()
-browser.get_items_from_elements_list()
