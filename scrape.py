@@ -10,6 +10,7 @@ import threading
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk
+from selenium.webdriver.chrome.options import Options
 
 # Hilfsfunktion, um Leerzeichen in einem String durch '-' zu ersetzen
 def check_string(product):
@@ -17,11 +18,15 @@ def check_string(product):
 
 class WebScraper:
     def __init__(self):
+        self.path_to_chromedriver = '/home/arch/truth/chromedriver'
+        self.path_to_brave = '/usr/bin/brave'
         self.driver = None
         self.actions = None
 
     def start(self):
-        self.driver = webdriver.Chrome()
+        options = Options()
+        options.binary_location = self.path_to_brave
+        self.driver = webdriver.Chrome(executable_path=self.path_to_chromedriver,  chrome_options=options)
         self.actions = ActionChains(self.driver)
 
     def load_url(self, url):
@@ -58,7 +63,7 @@ class ProductScraper(WebScraper):
         self.load_url(f"https://www.kleinanzeigen.de/s-{self.product}/k0")
 
     def get_product_url_pricerange(self, min_price, max_price):
-        self.load_url(f"https://www.kleinanzeigen.de/s-preis:{min_price}:{max_price}/nintendo-switch-lite/k0")
+        self.load_url(f"https://www.kleinanzeigen.de/s-preis:{min_price}:{max_price}/{self.product}/k0")
 
     def accept_cookies(self):
         cookies_accept = self.find_element('//*[@id="gdpr-banner-accept"]')
