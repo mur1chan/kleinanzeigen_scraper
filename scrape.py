@@ -151,7 +151,7 @@ def run_scraper():
     scraper.get_elements_list_from_html()
     status_text.set('Scraper beendet.')
     status_text.set('Scraper beendet. Statistiken berechnen...')
-    min_price, max_price, median_price = calculate_statistics('data.json')
+    min_price, min_product, max_price, max_product, median_price = calculate_statistics('data.json')
     status_text.set(f'Min Preis: {min_price}, Max Preis: {max_price}, Median Preis: {median_price}')
 
 def start_scraper_thread():
