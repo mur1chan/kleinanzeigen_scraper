@@ -18,15 +18,11 @@ def check_string(product):
 
 class WebScraper:
     def __init__(self):
-        self.path_to_chromedriver = '/home/arch/truth/chromedriver'
-        self.path_to_brave = '/usr/bin/brave'
         self.driver = None
         self.actions = None
 
     def start(self):
-        options = Options()
-        options.binary_location = self.path_to_brave
-        self.driver = webdriver.Chrome(executable_path=self.path_to_chromedriver,  chrome_options=options)
+        self.driver = webdriver.Chrome()
         self.actions = ActionChains(self.driver)
 
     def load_url(self, url):
