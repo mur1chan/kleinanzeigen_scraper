@@ -128,7 +128,7 @@ class JsonWriter(DataWriter):
         with open(self.filename, 'w') as file:
             json.dump(file_data, file, indent=4)
 
-# Erstelle eine Instanz von ProductScraper
+
 class WebScraperApp:
     def __init__(self, root):
         self.root = root
@@ -191,7 +191,6 @@ class WebScraperApp:
         return entry
 
     def run_scraper(self):
-        # Your original scraper logic here
         product = self.product_entry.get()
         min_price = self.min_price_entry.get()
         max_price = self.max_price_entry.get()
@@ -216,7 +215,6 @@ class WebScraperApp:
         scraper_thread.start()
 
     def calculate_statistics(self, filename):
-        # Your original statistics logic here
         with open(filename, 'r') as f:
             data = json.load(f)
         df = pd.DataFrame(data)
@@ -245,7 +243,6 @@ class WebScraperApp:
             self.product_table.insert('', 'end', values=(item['title'], item['price'], item['location'], item['upload'], item['link']))
 
     def open_link(self, event):
-        # Your original logic to open the link here
         item = self.product_table.focus()
         item_dict = self.product_table.item(item)
         webbrowser.open(item_dict['values'][-1])
