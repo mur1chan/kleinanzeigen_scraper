@@ -1,4 +1,3 @@
-# Importieren der erforderlichen Bibliotheken
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -116,7 +115,7 @@ class ProductScraper(WebScraper):
         print("Die Inhalte wurden gespeichert.")
         self.quit()
 
-# Basisklasse für JSON
+# Basisklasse für Datenschriftsteller
 class DataWriter:
     def __init__(self, filename):
         self.filename = filename
@@ -124,7 +123,8 @@ class DataWriter:
     def write_data(self, data):
         raise NotImplementedError("Must be implemented by subclass")
 
-# Eine Unterklasse von DataWriter
+
+# JSON-Schriftsteller, eine Unterklasse von DataWriter
 class JsonWriter(DataWriter):
     def write_data(self, new_data):
         # Schreibt Daten in eine JSON-Datei
@@ -139,21 +139,18 @@ class JsonWriter(DataWriter):
         with open(self.filename, 'w') as file:
             json.dump(file_data, file, indent=4)
 
-# WebScraperApp ist die Hauptklasse, die die Benutzeroberfläche erstellt und alle Funktionen koordiniert
 class WebScraperApp:
     def __init__(self, root):
         # Dies ist der Konstruktor der Klasse. Er initialisiert die Hauptelemente der GUI.
         # root: Tkinter-Root- oder Tkinter-Toplevel-Widget
-
         self.root = root
         self.root.title("Web Scraper")
-        self.notebook = ttk.Notebook(root)  # Erstellt ein Notebook-Widget für die Tabs
+        self.notebook = ttk.Notebook(root)
 
-        # Erstellt die Tabs
         self.create_scraper_tab()
         self.create_statistic_tab()
 
-        self.notebook.pack(expand=True, fill='both')  # Packt das Notebook-Widget ins Fenster
+        self.notebook.pack(expand=True, fill='both')
 
     def clear_table(self):
         # Löscht alle Einträge in der Tabelle und in der zugehörigen JSON-Datei.
@@ -163,15 +160,12 @@ class WebScraperApp:
         for item in self.product_table.get_children():
             self.product_table.delete(item)
 
-        # Leert die JSON-Datei
         with open('data.json', 'w') as f:
             json.dump([], f)
-
+            
     def create_scraper_tab(self):
-        # Erstellt den "Scraper"-Tab.
-
-        self.tab1 = ttk.Frame(self.notebook)  # Erstellt einen neuen Frame für den Tab
-        self.notebook.add(self.tab1, text='Scraper')  # Fügt den Frame dem Notebook-Widget hinzu
+        self.tab1 = ttk.Frame(self.notebook) # Erstellt einen neuen Frame für den Tab
+        self.notebook.add(self.tab1, text='Scraper') # Fügt den Frame dem Notebook-Widget hinzu
 
         # Erstellt die Eingabefelder und Buttons
         self.product_entry = self.create_entry(self.tab1, "Produkt:", 0)
@@ -188,20 +182,18 @@ class WebScraperApp:
         self.status_label.grid(row=4, column=0, columnspan=2)
 
     def create_statistic_tab(self):
-        # Erstellt den "Statistik"-Tab.
+        self.tab2 = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab2, text='Statistik')
 
-        self.tab2 = ttk.Frame(self.notebook)  # Erstellt einen neuen Frame für den Tab
-        self.notebook.add(self.tab2, text='Statistik')  # Fügt den Frame dem Notebook-Widget hinzu
-
-        # Erstellt den "Statistik berechnen"-Button und fügt ihn dem Tab hinzu
         self.calculate_button = tk.Button(self.tab2, text="Statistik berechnen", command=self.calculate_and_display_statistics)
         self.calculate_button.pack(pady=(20, 10))
 
-        # Erstellt die Labels für die Statistiken und fügt sie dem Tab hinzu
+        # Erstellt den "Statistik berechnen"-Button und fügt ihn dem Tab hinzu
         self.min_price_text = tk.StringVar()
         self.min_price_label = tk.Label(self.tab2, textvariable=self.min_price_text)
         self.min_price_label.pack()
 
+        # Erstellt die Labels für die Statistiken und fügt sie dem Tab hinzu
         self.max_price_text = tk.StringVar()
         self.max_price_label = tk.Label(self.tab2, textvariable=self.max_price_text)
         self.max_price_label.pack()
@@ -224,10 +216,9 @@ class WebScraperApp:
         self.product_table.bind('<Double-1>', self.open_link)
 
     def create_entry(self, parent, label, row):
-        # Hilfsmethode zum Erstellen von Eingabefeldern.
+       # Hilfsmethode zum Erstellen von Eingabefeldern.
 
         # Erstellt ein Label und ein Eingabefeld und fügt sie dem parent-Widget hinzu.
-
         label = tk.Label(parent, text=label)
         label.grid(row=row, column=0, padx=(20, 10), pady=(20, 10))
         entry = tk.Entry(parent)
@@ -235,9 +226,8 @@ class WebScraperApp:
         return entry
 
     def run_scraper(self):
-        # Führt den Scraper aus. Wird aufgerufen, wenn der "Start"-Knopf gedrückt wird.
-
-        # Holt die Eingabewerte
+        # Führt den Scraper aus.
+        # Wird aufgerufen, wenn der "Start"-Knopf gedrückt wird.
         product = self.product_entry.get()
         min_price = self.min_price_entry.get()
         max_price = self.max_price_entry.get()
@@ -260,8 +250,8 @@ class WebScraperApp:
         self.status_text.set('Scraper beendet.')
 
     def start_scraper_thread(self):
-        # Startet den Scraper in einem neuen Thread. Dies verhindert, dass die GUI während des Scrapings einfriert.
-
+        # Startet den Scraper in einem neuen Thread.
+        # Dies verhindert, dass die GUI während des Scrapings einfriert.
         scraper_thread = threading.Thread(target=self.run_scraper)
         scraper_thread.start()
 
@@ -269,12 +259,12 @@ class WebScraperApp:
         # Berechnet die Statistiken auf Basis der gescrapten Daten.
 
         # filename: Der Name der JSON-Datei, die die gescrapten Daten enthält
-
         with open(filename, 'r') as f:
             data = json.load(f)
         df = pd.DataFrame(data)
 
-        # Berechnet die Statistiken
+        df['price'] = df['price'].str.replace(' €', '').str.replace(' VB', '').str.replace(',', '.').astype(float)
+
         min_price = df['price'].min()
         min_product = df.loc[df['price'] == min_price].iloc[0].to_dict()
         max_price = df['price'].max()
@@ -286,9 +276,8 @@ class WebScraperApp:
     def calculate_and_display_statistics(self):
         # Berechnet die Statistiken und zeigt sie an.
 
+        # Berechnet die Statistiken
         min_price, min_product, max_price, max_product, median_price = self.calculate_statistics('data.json')
-
-        # Zeigt die Statistiken an
         self.min_price_text.set(f'Min Preis: {min_price}, Produkt: {min_product}')
         self.max_price_text.set(f'Max Preis: {max_price}, Produkt: {max_product}')
         self.median_price_text.set(f'Median Preis: {median_price}')
@@ -303,8 +292,7 @@ class WebScraperApp:
 
     def open_link(self, event):
         # Öffnet den Link des ausgewählten Tabelleneintrags im Webbrowser.
-        # Wird aufgerufen, wenn ein Tabelleneintrag doppelt angeklickt wird.
-
+        # Wird aufgerufen, wenn ein Tabelleneintrag doppelt angeklickt wird.        
         item = self.product_table.focus()
         item_dict = self.product_table.item(item)
         webbrowser.open(item_dict['values'][-1])
