@@ -8,7 +8,6 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import threading
 import pandas as pd
-from selenium.webdriver.chrome.options import Options
 import webbrowser
 
 
