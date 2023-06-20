@@ -139,6 +139,10 @@ class WebScraperApp:
 
         self.notebook.pack(expand=True, fill='both')
 
+    def clear_table(self):
+        for item in self.product_table.get_children():
+            self.product_table.delete(item)
+
     def create_scraper_tab(self):
         self.tab1 = ttk.Frame(self.notebook)
         self.notebook.add(self.tab1, text='Scraper')
@@ -153,7 +157,8 @@ class WebScraperApp:
         self.status_text = tk.StringVar()
         self.status_label = tk.Label(self.tab1, textvariable=self.status_text)
         self.status_label.grid(row=4, column=0, columnspan=2)
-
+        self.clear_button = tk.Button(self.tab2, text="Einträge löschen", command=self.clear_table)
+        self.clear_button.pack(pady=(10, 0))
     def create_statistic_tab(self):
         self.tab2 = ttk.Frame(self.notebook)
         self.notebook.add(self.tab2, text='Statistik')
