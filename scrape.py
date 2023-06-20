@@ -5,15 +5,16 @@ import time
 import json
 import datetime
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import threading
 import pandas as pd
-import tkinter as tk
-from tkinter import ttk
+from selenium.webdriver.chrome.options import Options
+import webbrowser
 
-# Hilfsfunktion, um Leerzeichen in einem String durch '-' zu ersetzen
+
 def check_string(product):
     return product.replace(' ', '-')
+
 
 class WebScraper:
     def __init__(self):
@@ -37,6 +38,7 @@ class WebScraper:
     def quit(self):
         self.driver.close()
 
+
 class ProductScraper(WebScraper):
 
     @staticmethod
@@ -58,7 +60,7 @@ class ProductScraper(WebScraper):
         self.load_url(f"https://www.kleinanzeigen.de/s-{self.product}/k0")
 
     def get_product_url_pricerange(self, min_price, max_price):
-        self.load_url(f"https://www.kleinanzeigen.de/s-preis:{min_price}:{max_price}/nintendo-switch-lite/k0")
+        self.load_url(f"https://www.kleinanzeigen.de/s-preis:{min_price}:{max_price}/{self.product}/k0")
 
     def accept_cookies(self):
         cookies_accept = self.find_element('//*[@id="gdpr-banner-accept"]')
@@ -94,15 +96,16 @@ class ProductScraper(WebScraper):
             except:
                 pass
             scraped_data = {
-            'title': title,
-            'price': price,
-            'location': location,
-            'link': link,
-            'upload': upload
+                'title': title,
+                'price': price,
+                'location': location,
+                'link': link,
+                'upload': upload
             }
             self.json_write.write_data(scraped_data)
         print("Die Inhalte wurden gespeichert.")
         self.quit()
+
 
 class DataWriter:
     def __init__(self, filename):
@@ -111,6 +114,7 @@ class DataWriter:
     def write_data(self, data):
         raise NotImplementedError("Must be implemented by subclass")
 
+
 class JsonWriter(DataWriter):
     def write_data(self, new_data):
         try:
@@ -118,115 +122,138 @@ class JsonWriter(DataWriter):
                 file_data = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError):
             file_data = []
-        
+
         file_data.append(new_data)
-        
+
         with open(self.filename, 'w') as file:
             json.dump(file_data, file, indent=4)
 
-# Erstelle eine Instanz von ProductScraper
-def run_scraper():
-    product = product_entry.get()
-    min_price = min_price_entry.get()
-    max_price = max_price_entry.get()
 
-    # Einige grundlegende Eingabevalidierungen
-    if not product:
-        messagebox.showerror("Fehler", "Bitte Produktname eingeben.")
-        return
-    if not min_price.isdigit() or not max_price.isdigit():
-        messagebox.showerror("Fehler", "Preise müssen numerische Werte sein.")
-        return
 
-    status_text.set('Scraper gestartet ...')
-    scraper = ProductScraper(product)
-    scraper.start()
-    scraper.get_product_url_pricerange(min_price, max_price)
-    scraper.accept_cookies()
-    scraper.get_elements_list_from_html()
-    status_text.set('Scraper beendet.')
-    status_text.set('Scraper beendet. Statistiken berechnen...')
-    min_price, max_price, median_price = calculate_statistics('data.json')
-    status_text.set(f'Min Preis: {min_price}, Max Preis: {max_price}, Median Preis: {median_price}')
 
-def start_scraper_thread():
-    scraper_thread = threading.Thread(target=run_scraper)
-    scraper_thread.start()
+class WebScraperApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Web Scraper")
+        self.notebook = ttk.Notebook(root)
 
-def calculate_statistics(filename):
-    # JSON-Datei laden und in DataFrame umwandeln
-    with open(filename, 'r') as f:
-        data = json.load(f)
-    df = pd.DataFrame(data)
+        self.create_scraper_tab()
+        self.create_statistic_tab()
 
-    # Preisdaten bereinigen und in numerisches Format umwandeln
-    df['price'] = df['price'].str.replace(' €', '').str.replace(' VB', '').str.replace(',', '.').astype(float)
+        self.notebook.pack(expand=True, fill='both')
 
-    # Berechnungen durchführen
-    min_price = df['price'].min()
-    min_product = df.loc[df['price'] == min_price].iloc[0].to_dict()
-    max_price = df['price'].max()
-    max_product = df.loc[df['price'] == max_price].iloc[0].to_dict()
-    median_price = df['price'].median()
+    def create_scraper_tab(self):
+        self.tab1 = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab1, text='Scraper')
 
-    return min_price, min_product, max_price, max_product, median_price
+        self.product_entry = self.create_entry(self.tab1, "Produkt:", 0)
+        self.min_price_entry = self.create_entry(self.tab1, "Min Preis:", 1)
+        self.max_price_entry = self.create_entry(self.tab1, "Max Preis:", 2)
 
-def calculate_and_display_statistics():
-    min_price, min_product, max_price, max_product, median_price = calculate_statistics('data.json')
-    min_price_text.set(f'Min Preis: {min_price}, Produkt: {min_product}')
-    max_price_text.set(f'Max Preis: {max_price}, Produkt: {max_product}')
-    median_price_text.set(f'Median Preis: {median_price}')
+        self.start_button = tk.Button(self.tab1, text="Start", command=self.start_scraper_thread)
+        self.start_button.grid(row=3, column=0, columnspan=2, pady=(0, 20))
 
-root = tk.Tk()
-root.title("Web Scraper")
+        self.status_text = tk.StringVar()
+        self.status_label = tk.Label(self.tab1, textvariable=self.status_text)
+        self.status_label.grid(row=4, column=0, columnspan=2)
 
-notebook = ttk.Notebook(root)
+    def create_statistic_tab(self):
+        self.tab2 = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab2, text='Statistik')
 
-# Erster Tab
-tab1 = ttk.Frame(notebook)
-notebook.add(tab1, text='Scraper')
+        self.calculate_button = tk.Button(self.tab2, text="Statistik berechnen", command=self.calculate_and_display_statistics)
+        self.calculate_button.pack(pady=(20, 10))
 
-product_label = tk.Label(tab1, text="Produkt:")
-product_label.grid(row=0, column=0, padx=(20, 10), pady=(20, 10))
-product_entry = tk.Entry(tab1)
-product_entry.grid(row=0, column=1, padx=(10, 20), pady=(20, 10))
+        self.min_price_text = tk.StringVar()
+        self.min_price_label = tk.Label(self.tab2, textvariable=self.min_price_text)
+        self.min_price_label.pack()
 
-min_price_label = tk.Label(tab1, text="Minimaler Preis:")
-min_price_label.grid(row=1, column=0, padx=(20, 10), pady=(10, 10))
-min_price_entry = tk.Entry(tab1)
-min_price_entry.grid(row=1, column=1, padx=(10, 20), pady=(10, 10))
+        self.max_price_text = tk.StringVar()
+        self.max_price_label = tk.Label(self.tab2, textvariable=self.max_price_text)
+        self.max_price_label.pack()
 
-max_price_label = tk.Label(tab1, text="Maximaler Preis:")
-max_price_label.grid(row=2, column=0, padx=(20, 10), pady=(10, 20))
-max_price_entry = tk.Entry(tab1)
-max_price_entry.grid(row=2, column=1, padx=(10, 20), pady=(10, 20))
+        self.median_price_text = tk.StringVar()
+        self.median_price_label = tk.Label(self.tab2, textvariable=self.median_price_text)
+        self.median_price_label.pack()
 
-status_text = tk.StringVar()
-status_label = tk.Label(tab1, textvariable=status_text)
-status_label.grid(row=3, column=0, columnspan=2)
+        self.product_table = ttk.Treeview(self.tab2, columns=('title', 'price', 'location', 'upload', 'link'), show='headings')
+        self.product_table.heading('title', text='Titel')
+        self.product_table.heading('price', text='Preis')
+        self.product_table.heading('location', text='Standort')
+        self.product_table.heading('upload', text='Hochgeladen')
+        self.product_table.heading('link', text='Link')
+        self.product_table.pack(pady=(20, 0), fill='x')
+        self.product_table.bind('<Double-1>', self.open_link)
 
-submit_button = tk.Button(tab1, text="Suche starten", command=start_scraper_thread)
-submit_button.grid(row=4, column=0, columnspan=2, pady=(10, 20))
+    def create_entry(self, parent, label, row):
+        label = tk.Label(parent, text=label)
+        label.grid(row=row, column=0, padx=(20, 10), pady=(20, 10))
+        entry = tk.Entry(parent)
+        entry.grid(row=row, column=1, padx=(0, 20), pady=(20, 10))
+        return entry
 
-# Zweiter Tab
-tab2 = ttk.Frame(notebook)
-notebook.add(tab2, text='Statistik')
+    def run_scraper(self):
+        # Your original scraper logic here
+        product = self.product_entry.get()
+        min_price = self.min_price_entry.get()
+        max_price = self.max_price_entry.get()
 
-calculate_button = tk.Button(tab2, text="Statistiken berechnen", command=calculate_and_display_statistics)
-calculate_button.pack(padx=20, pady=(20, 10))
+        if not product:
+            messagebox.showerror("Fehler", "Bitte Produktname eingeben.")
+            return
+        if not min_price.isdigit() or not max_price.isdigit():
+            messagebox.showerror("Fehler", "Preise müssen numerische Werte sein.")
+            return
 
-min_price_text = tk.StringVar()
-min_price_label = tk.Label(tab2, textvariable=min_price_text)
-min_price_label.pack(padx=20, pady=(10, 10))
+        self.status_text.set('Scraper gestartet ...')
+        scraper = ProductScraper(product)
+        scraper.start()
+        scraper.get_product_url_pricerange(min_price, max_price)
+        scraper.accept_cookies()
+        scraper.get_elements_list_from_html()
+        self.status_text.set('Scraper beendet.')
 
-max_price_text = tk.StringVar()
-max_price_label = tk.Label(tab2, textvariable=max_price_text)
-max_price_label.pack(padx=20, pady=(10, 10))
+    def start_scraper_thread(self):
+        scraper_thread = threading.Thread(target=self.run_scraper)
+        scraper_thread.start()
 
-median_price_text = tk.StringVar()
-median_price_label = tk.Label(tab2, textvariable=median_price_text)
-median_price_label.pack(padx=20, pady=(10, 20))
+    def calculate_statistics(self, filename):
+        # Your original statistics logic here
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        df = pd.DataFrame(data)
 
-notebook.pack(expand=True, fill='both')
+        df['price'] = df['price'].str.replace(' €', '').str.replace(' VB', '').str.replace(',', '.').astype(float)
 
-root.mainloop()
+        min_price = df['price'].min()
+        min_product = df.loc[df['price'] == min_price].iloc[0].to_dict()
+        max_price = df['price'].max()
+        max_product = df.loc[df['price'] == max_price].iloc[0].to_dict()
+        median_price = df['price'].median()
+
+        return min_price, min_product, max_price, max_product, median_price
+
+    def calculate_and_display_statistics(self):
+        min_price, min_product, max_price, max_product, median_price = self.calculate_statistics('data.json')
+        self.min_price_text.set(f'Min Preis: {min_price}, Produkt: {min_product}')
+        self.max_price_text.set(f'Max Preis: {max_price}, Produkt: {max_product}')
+        self.median_price_text.set(f'Median Preis: {median_price}')
+
+        with open('data.json', 'r') as file:
+            data = json.load(file)
+
+        self.product_table.delete(*self.product_table.get_children())
+        for item in data:
+            self.product_table.insert('', 'end', values=(item['title'], item['price'], item['location'], item['upload'], item['link']))
+
+    def open_link(self, event):
+        # Your original logic to open the link here
+        item = self.product_table.focus()
+        item_dict = self.product_table.item(item)
+        webbrowser.open(item_dict['values'][-1])
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = WebScraperApp(root)
+    root.mainloop()
